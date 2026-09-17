@@ -1,6 +1,7 @@
 # IAM — Multi-Group Cumulative Permissions
 
 ## What this lab shows
+![Diagram: users, groups, and policies showing cumulative permission via shared membership](screenshots/00-concept-diagram.png)
 
 A user's effective IAM permissions are the **union** of every group they
 belong to — not just their "primary" group. This lab builds a 3-group /
