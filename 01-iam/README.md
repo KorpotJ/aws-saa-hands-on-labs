@@ -15,8 +15,14 @@ with IAM Policy Simulator.
 | `AuditTeam` | `SecurityAudit` | Charles, David |
 | `Operations` | `AmazonS3FullAccess` | David, Edward, Fred |
 
+![IAM user groups overview — Developers, AuditTeam, and Operations with correct member counts](screenshots/01-groups-overview.png)
+
 Charles and David are each in two groups, so they each accumulate permissions
-from two policies at once.
+from two policies at once — confirmed on their own group membership pages:
+
+![Charles's Groups tab showing membership in both Developers and AuditTeam](screenshots/02-charles-groups-membership.png)
+
+![David's Groups tab showing membership in both AuditTeam and Operations](screenshots/03-david-groups-membership.png)
 
 ## Tagging decision
 
@@ -43,6 +49,8 @@ search/reporting — they don't drive permissions (that's what groups do).
 | `ec2:RunInstances` | ✅ Allowed | `AmazonEC2FullAccess` via Developers |
 | `s3:GetBucketAcl` | ✅ Allowed | `SecurityAudit` via AuditTeam |
 
+![Policy Simulator result for Charles — ec2:RunInstances and s3:GetBucketAcl both Allowed](screenshots/04-policy-simulator-charles.png)
+
 ### David (AuditTeam + Operations)
 
 | Action | Result | Why |
@@ -50,6 +58,8 @@ search/reporting — they don't drive permissions (that's what groups do).
 | `s3:PutObject` | ✅ Allowed | `AmazonS3FullAccess` via Operations |
 | `ec2:DescribeInstances` | ✅ Allowed | `SecurityAudit` via AuditTeam |
 | `ec2:RunInstances` | ⛔ Denied | Not a member of Developers |
+
+![Policy Simulator result for David — s3:PutObject and ec2:DescribeInstances Allowed, ec2:RunInstances Denied](screenshots/05-policy-simulator-david.png)
 
 ## Lesson learned: `SecurityAudit` does not grant `s3:GetObject`
 
@@ -64,16 +74,6 @@ different permission entirely.
 The test was corrected to `s3:GetBucketAcl`, which the policy does grant.
 Takeaway: don't infer what a managed policy grants from its name — check it,
 or test it.
-
-## Screenshots
-
-| File | Shows |
-|---|---|
-| `screenshots/01-groups-overview.png` | 3 groups with correct member counts |
-| `screenshots/02-charles-groups-membership.png` | Charles in 2 groups |
-| `screenshots/03-david-groups-membership.png` | David in 2 groups |
-| `screenshots/04-policy-simulator-charles.png` | Charles: union of permissions proven |
-| `screenshots/05-policy-simulator-david.png` | David: union of permissions proven |
 
 ## Clean up
 
