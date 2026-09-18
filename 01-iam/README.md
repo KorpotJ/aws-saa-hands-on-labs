@@ -40,7 +40,7 @@ belong to — not just their "primary" group. This lab builds a 3-group /
 6-user setup where two users sit in two groups each, then proves the union
 with IAM Policy Simulator.
 
-![Diagram: users, groups, and policies showing cumulative permission via shared membership](screenshots/00-concept-diagram.png)
+![Diagram: users, groups, and policies showing cumulative permission via shared membership](screenshots/part1-00-concept-diagram.png)
 
 ### Scenario
 
@@ -50,14 +50,14 @@ with IAM Policy Simulator.
 | `AuditTeam` | `SecurityAudit` | Charles, David |
 | `Operations` | `AmazonS3FullAccess` | David, Edward, Fred |
 
-![IAM user groups overview — Developers, AuditTeam, and Operations with correct member counts](screenshots/01-groups-overview.png)
+![IAM user groups overview — Developers, AuditTeam, and Operations with correct member counts](screenshots/part1-01-groups-overview.png)
 
 Charles and David are each in two groups, so they each accumulate permissions
 from two policies at once — confirmed on their own group membership pages:
 
-![Charles's Groups tab showing membership in both Developers and AuditTeam](screenshots/02-charles-groups-membership.png)
+![Charles's Groups tab showing membership in both Developers and AuditTeam](screenshots/part1-02-charles-groups-membership.png)
 
-![David's Groups tab showing membership in both AuditTeam and Operations](screenshots/03-david-groups-membership.png)
+![David's Groups tab showing membership in both AuditTeam and Operations](screenshots/part1-03-david-groups-membership.png)
 
 ### Tagging decision
 
@@ -84,7 +84,7 @@ search/reporting — they don't drive permissions (that's what groups do).
 | `ec2:RunInstances` | ✅ Allowed | `AmazonEC2FullAccess` via Developers |
 | `s3:GetBucketAcl` | ✅ Allowed | `SecurityAudit` via AuditTeam |
 
-![Policy Simulator result for Charles — ec2:RunInstances and s3:GetBucketAcl both Allowed](screenshots/04-policy-simulator-charles.png)
+![Policy Simulator result for Charles — ec2:RunInstances and s3:GetBucketAcl both Allowed](screenshots/part1-04-policy-simulator-charles.png)
 
 **David (AuditTeam + Operations)**
 
@@ -94,7 +94,7 @@ search/reporting — they don't drive permissions (that's what groups do).
 | `ec2:DescribeInstances` | ✅ Allowed | `SecurityAudit` via AuditTeam |
 | `ec2:RunInstances` | ⛔ Denied | Not a member of Developers |
 
-![Policy Simulator result for David — s3:PutObject and ec2:DescribeInstances Allowed, ec2:RunInstances Denied](screenshots/05-policy-simulator-david.png)
+![Policy Simulator result for David — s3:PutObject and ec2:DescribeInstances Allowed, ec2:RunInstances Denied](screenshots/part1-05-policy-simulator-david.png)
 
 ### Clean up
 
@@ -136,6 +136,8 @@ Roles are how AWS services (EC2, Lambda, etc.), other AWS accounts, or
 federated identities get scoped, expiring access instead of a shared
 long-term secret.
 
+![Diagram: an IAM Role sits between a trust policy (who can assume it) and a permission policy (what it can do); EC2 assumes the role and receives temporary credentials via STS](screenshots/part3-00-concept-diagram.png)
+
 ### Scenario
 
 Created an EC2 role from the console with two settings:
@@ -150,11 +152,11 @@ Created an EC2 role from the console with two settings:
 **Trust relationships** — confirms EC2 is the only trusted entity that can
 assume this role:
 
-![Trust relationships tab for DemoRoleForEC2, showing ec2.amazonaws.com as the trusted principal](screenshots/06-role-trust-relationship.png)
+![Trust relationships tab for DemoRoleForEC2, showing ec2.amazonaws.com as the trusted principal](screenshots/part3-01-role-trust-relationship.png)
 
 **Permissions** — confirms `IAMReadOnlyAccess` is attached:
 
-![Permissions tab for DemoRoleForEC2, showing IAMReadOnlyAccess attached](screenshots/07-role-permissions.png)
+![Permissions tab for DemoRoleForEC2, showing IAMReadOnlyAccess attached](screenshots/part3-02-role-permissions.png)
 
 ### Note on Instance Profiles
 
