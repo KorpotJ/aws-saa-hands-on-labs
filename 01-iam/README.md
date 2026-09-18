@@ -9,10 +9,10 @@ AWS SAA-C03 Section 4.
 | Part | Topic | Status |
 |---|---|---|
 | 1 | Multi-group cumulative permissions | ✅ Done |
-| 2 | Password Policy + MFA | 📋 Planned |
+| 2 | Password Policy + MFA | ✅ Done |
 | 3 | IAM Roles | ✅ Done |
-| 4 | Access Keys + CLI | 📋 Planned |
-| 5 | Security Tools (Credential Report + Access Advisor) | 📋 Planned |
+| 4 | Access Keys + CLI | ✅ Done |
+| 5 | Security Tools (Credential Report + Access Advisor) | ✅ Done |
 
 ## Lessons learned across this lab
 
@@ -22,6 +22,21 @@ AWS SAA-C03 Section 4.
 - **Creating an EC2 role through the Console also creates a matching
   Instance Profile automatically** — via CLI/SDK these are two separate
   objects that have to be created and linked explicitly. *(Part 3)*
+- **CLI and Console enforce the exact same IAM policy** — there is no way
+  to get broader access by switching methods. Verified by comparing
+  `aws iam list-users` output against the Console. *(Part 4)*
+- **A real access key had been sitting inactive for 176 days** without
+  anyone noticing — found on this account's own `admin_korpot` user, not a
+  hypothetical. Kept it (rather than deleting immediately) as live evidence
+  for the least-privilege lesson in Part 5. *(Part 4 → Part 5)*
+- **`AdministratorAccess` allowed 455 services — only ~25% had ever been
+  touched.** Access Advisor's "services not accessed" filter surfaced
+  roughly 340 unused services on a real admin user. Concrete number to use
+  when discussing least privilege in interviews, not just theory.
+  *(Part 5)*
+- **MFA was set up on the IAM user (`admin_korpot`), not root** — this
+  keeps root as a recovery path if the MFA device is ever lost, instead of
+  risking a total lockout. *(Part 2)*
 
 ---
 
@@ -105,14 +120,51 @@ groups (some consoles block group deletion while members remain).
 
 ---
 
-## Part 2: Password Policy + MFA 📋
+## Part 2: Password Policy + MFA ✅
 
-Custom password policy + virtual MFA on the root account.
+Password Policy and MFA add two independent layers of protection —
+something you know plus something you have.
 
 <details>
-<summary>Full write-up (coming soon)</summary>
+<summary>Full write-up, scenario, results, and screenshots</summary>
 
-_Not started yet._
+### What this lab shows
+
+A password alone only protects against someone who doesn't know it — if it
+leaks (phishing, reuse, a keylogger), that's the only barrier gone. MFA adds
+a second, independent factor so a leaked password alone isn't enough.
+
+![Diagram: password (something you know) and MFA device (something you have) combining into a strong login for admin_korpot, not root](screenshots/part2-00-concept-diagram.png)
+
+### Scenario
+
+1. **Custom password policy** set at the account level: 14-character
+   minimum, requires uppercase, lowercase, a number, and a non-alphanumeric
+   character, expires every 90 days, prevents password reuse.
+2. **Virtual MFA** enabled on the `admin_korpot` IAM user (an authenticator
+   app), not the root account.
+
+**Why the IAM user and not root:** losing the MFA device for root leaves no
+higher authority to recover the account. Setting it up on `admin_korpot`
+instead means root stays available as a recovery path if the device is
+ever lost.
+
+### Result
+
+**Password policy**, configured and active:
+
+![Password policy settings showing 14-character minimum, all character type requirements, 90-day expiration, and reuse prevention](screenshots/part2-01-password-policy.png)
+
+**MFA device** attached and verified — logging out and back in required a
+code from the authenticator app before granting access:
+
+![MFA devices list for admin_korpot showing one active virtual MFA device](screenshots/part2-02-mfa-device-list.png)
+
+### Note on the QR code step
+
+The QR code shown when pairing a virtual MFA device encodes the secret seed
+used to generate codes — treated the same as a secret access key: never
+screenshotted or saved anywhere it could leak.
 
 </details>
 
@@ -173,25 +225,110 @@ the EC2 section of the course is reached.
 
 ---
 
-## Part 4: Access Keys + CLI 📋
+## Part 4: Access Keys + CLI ✅
+
+Console, CLI, and SDK all enforce the exact same IAM policy — there's no
+way to get broader access by switching how you connect.
 
 <details>
-<summary>Full write-up (coming soon)</summary>
+<summary>Full write-up, scenario, results, and screenshots</summary>
 
-_Not started yet._
+### What this lab shows
+
+Access keys are long-term credentials (unlike a role's temporary ones) used
+to authenticate the CLI and SDK. Whatever IAM policy applies to a user in
+the Console applies identically when that same user calls AWS through the
+CLI.
+
+![Diagram: IAM User creates an Access Key (ID + secret, shown once), configured locally via aws configure into the AWS CLI, which calls the AWS API under the same IAM policy as the console](screenshots/part4-00-concept-diagram.png)
+
+### Scenario
+
+Before creating anything new, checked whether the CLI was already
+configured on this machine:
+
+```
+$ aws sts get-caller-identity
+{
+    "UserId": "********************SA5SQ",
+    "Account": "*********9724",
+    "Arn": "arn:aws:iam::**********9724:user/admin_korpot"
+}
+```
+
+It was — already set up from earlier work on the ClinicKids project — so no
+new access key was created for this lab. The `admin_korpot` user already
+had two access keys on file:
+
+![Access keys list for admin_korpot — one Active key last used 7 days ago, one Inactive key unused for 176 days](screenshots/part4-01-access-keys-list.png)
+
+- **Key 1 (Active):** last used 7 days ago, service `cloudfront` — the key
+  behind ClinicKids deployments.
+- **Key 2 (Inactive):** unused for 176 days. Left in place on purpose as a
+  real example of a stale credential for Part 5, rather than deleted
+  immediately.
+
+### Result
+
+Ran `aws iam list-users` and compared the result against the same list
+visible in the Console — identical, confirming the CLI enforces the same
+permissions as the Console for this user.
+
+### Note on safety
+
+A Secret Access Key is shown by AWS exactly once, at creation. It's never
+screenshotted or committed anywhere — this lab avoided creating a new one
+specifically to avoid that exposure window entirely.
 
 </details>
 
 ---
 
-## Part 5: Security Tools 📋
+## Part 5: Security Tools ✅
 
-IAM Credentials Report + IAM Access Advisor.
+Two tools, two different scopes, one goal: find what's unused and remove
+it — the practical side of least privilege.
 
 <details>
-<summary>Full write-up (coming soon)</summary>
+<summary>Full write-up, scenario, results, and screenshots</summary>
 
-_Not started yet._
+### What this lab shows
+
+**IAM Credentials Report** works at the account level — one CSV covering
+every user's credential status at once. **IAM Access Advisor** works at the
+user level — showing exactly which services a specific user has actually
+called, and when. Both point at the same goal: finding permissions and
+credentials that are granted but never used.
+
+![Diagram: Credentials Report (account-level, all users, CSV) and Access Advisor (per-user, service usage history) both feeding into least privilege — find and remove what's unused](screenshots/part5-00-concept-diagram.png)
+
+### Scenario
+
+Opened Access Advisor for `admin_korpot` (last accessed tab) and filtered
+by **"Services not accessed"** instead of scrolling the default alphabetical
+list, where commonly-used services (IAM, EC2, STS) show up first and hide
+the real signal.
+
+### Result
+
+Out of **455 services** allowed by `AdministratorAccess`, roughly **340
+(~75%) had never been accessed** in the tracking period — services like AWS
+App2Container, Alexa for Business, AWS Private Certificate Authority, and
+Amazon Managed Workflows for Apache Airflow.
+
+![Access Advisor filtered to services not accessed — 34 pages of unused services out of 455 total allowed](screenshots/part5-01-access-advisor-unused.png)
+
+A separate Credentials Report wasn't pulled — the same underlying signal
+(a stale, unused credential) was already visible directly in the Console
+in Part 4: Access key 2, inactive for 176 days.
+
+### Why this matters
+
+A ~75% unused rate on a real admin account is a concrete number for
+explaining least privilege in an interview, rather than reciting the
+definition: broad managed policies like `AdministratorAccess` are
+convenient but almost always far wider than what's actually used — Access
+Advisor is how you find the gap and write a narrower custom policy instead.
 
 </details>
 
