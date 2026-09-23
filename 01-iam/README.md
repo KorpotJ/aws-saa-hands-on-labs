@@ -121,6 +121,40 @@ search/reporting — they don't drive permissions (that's what groups do).
 All 6 users and 3 groups were deleted after the lab — users first, then
 groups (some consoles block group deletion while members remain).
 
+### Bonus: explicit Deny always wins
+
+The Policy Simulator results above all involve only Allow statements. To
+confirm the other half of IAM's evaluation logic — that an explicit Deny
+overrides any Allow, no matter how broad — a temporary inline policy was
+attached directly to `admin_korpot` (who normally has full
+`AdministratorAccess` via the Admin group):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Statement1",
+      "Effect": "Deny",
+      "Action": "iam:DeleteRole",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+With both policies attached at once:
+
+![admin_korpot's Permissions policies list showing AdministratorAccess (via the Admin group) and TempDenyTest (inline) both attached](screenshots/part1-06-admin-permissions-both.png)
+
+Policy Simulator confirms `iam:DeleteRole` is Denied despite
+`AdministratorAccess` allowing everything else:
+
+![Policy Simulator result for admin_korpot — iam:DeleteRole is Denied, with result details reading "Explicit deny found in 1 or more statements"](screenshots/part1-07-explicit-deny-simulator.png)
+
+The inline policy (`TempDenyTest`) was deleted immediately after capturing
+this result — it served no purpose left in place.
+
 </details>
 
 ---
