@@ -37,6 +37,11 @@ AWS SAA-C03 Section 4.
 - **MFA was set up on the IAM user (`admin_korpot`), not root** — this
   keeps root as a recovery path if the MFA device is ever lost, instead of
   risking a total lockout. *(Part 2)*
+- **An explicit Deny always overrides an Allow, even under
+  `AdministratorAccess`.** Tested directly: an inline policy denying a
+  single narrow action (`iam:DeleteRole`) was enough to block it, with
+  Policy Simulator confirming *"Explicit deny found in 1 or more
+  statements."* *(Part 1, bonus)*
 
 ---
 
